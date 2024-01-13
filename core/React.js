@@ -3,7 +3,7 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-13 16:12:50
+ * @LastEditTime: 2024-01-13 20:05:02
  */
 /**
  * 创建文本内容
@@ -30,39 +30,42 @@ function createElement(type, props, ...children) {
     type,
     props: {
       ...props,
-      children: children,
+      children: children.map(child => {
+        return typeof child === 'string'
+          ? createTextNode(child)
+          : child
+      }),
     },
   };
 }
 
-const React = {
-  createElement,
-  /**
+/**
  * 渲染vdom
  * @param {object} el vdom
  * @param {HTMLElement} container 容器
  */
-  render(el, container) {
-    const dom = el.type === 'TEXT_ELEMENT'
-      ? document.createTextNode('')
-      : document.createElement(el.type);
+function render(el, container) {
+  const dom = el.type === 'TEXT_ELEMENT'
+    ? document.createTextNode('')
+    : document.createElement(el.type);
 
-    Object.keys(el.props).forEach(key => {
-      if (key !== 'children') {
-        dom[key] = el.props[key];
-      }
-    });
+  Object.keys(el.props).forEach(key => {
+    if (key !== 'children') {
+      dom[key] = el.props[key];
+    }
+  });
 
-    el.props.children.forEach(child => {
-      if (typeof child === 'string') {
-        React.render(createTextNode(child), dom)
-      } else {
-        React.render(child, dom);
-      }
-    });
+  const children = el.props.children;
+  children.forEach(child => {
+    React.render(child, dom);
+  });
 
-    container.appendChild(dom);
-  }
+  container.appendChild(dom);
+}
+
+const React = {
+  createElement,
+  render,
 }
 
 export default React
