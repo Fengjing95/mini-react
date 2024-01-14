@@ -3,7 +3,7 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-13 20:05:02
+ * @LastEditTime: 2024-01-14 20:04:58
  */
 /**
  * 创建文本内容
@@ -45,22 +45,81 @@ function createElement(type, props, ...children) {
  * @param {HTMLElement} container 容器
  */
 function render(el, container) {
-  const dom = el.type === 'TEXT_ELEMENT'
-    ? document.createTextNode('')
-    : document.createElement(el.type);
+  nextWorkOfUnit = {
+    dom: container,
+    props: {
+      children: [el]
+    }
+  }
+  requestIdleCallback(workloop)
+}
 
-  Object.keys(el.props).forEach(key => {
+let nextWorkOfUnit = null;
+function workloop(deadline) {
+  let shouldYield = false;
+  while (!shouldYield && nextWorkOfUnit) {
+    nextWorkOfUnit = performWorkOfUnit(nextWorkOfUnit);
+    shouldYield = deadline.timeRemaining() < 1;
+  }
+  requestIdleCallback(workloop);
+}
+
+function createDOM(type) {
+  return type === 'TEXT_ELEMENT'
+    ? document.createTextNode('')
+    : document.createElement(type)
+}
+
+function updateProps(dom, props) {
+  Object.keys(props).forEach(key => {
     if (key !== 'children') {
-      dom[key] = el.props[key];
+      dom[key] = props[key];
     }
   });
+}
 
-  const children = el.props.children;
-  children.forEach(child => {
-    React.render(child, dom);
-  });
+function initChildren(work) {
+  const children = work.props.children;
+  let prevChild = null;
+  children.forEach((child, index) => {
+    const fiber = {
+      type: child.type,
+      props: child.props,
+      child: null,
+      parent: work,
+      sibling: null,
+      dom: null
+    }
+    if (index === 0) {
+      work.child = fiber;
+    } else {
+      prevChild.sibling = fiber;
+    }
+    prevChild = fiber;
+  })
+}
 
-  container.appendChild(dom);
+function performWorkOfUnit(fiber) {
+  if (!fiber.dom) {
+    // 创建DOM
+    const dom = (fiber.dom = createDOM(fiber.type));
+    fiber.parent.dom.append(dom)
+
+    // 处理props
+    updateProps(dom, fiber.props);
+  }
+
+  // 转换链表
+  initChildren(fiber)
+
+  // 返回下一个处理的节点
+  if (fiber.child) {
+    return fiber.child
+  }
+  if (fiber.sibling) {
+    return fiber.sibling
+  }
+  return fiber.parent?.sibling
 }
 
 const React = {
