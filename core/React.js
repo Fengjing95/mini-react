@@ -3,7 +3,7 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-15 23:07:17
+ * @LastEditTime: 2024-01-15 23:08:18
  */
 /**
  * 创建文本内容
@@ -146,9 +146,6 @@ function performWorkOfUnit(fiber) {
   // 返回下一个处理的节点
   if (fiber.child) {
     return fiber.child
-  }
-  if (fiber.sibling) {
-    return fiber.sibling
   }
   let nextFiber = fiber;
   while (nextFiber) {
