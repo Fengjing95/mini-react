@@ -3,7 +3,7 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-13 20:05:11
+ * @LastEditTime: 2024-01-15 22:59:53
  */
 // import React from 'react'
 // import ReactDOM from 'react-dom/client'
@@ -19,4 +19,4 @@ import ReactDOM from '/core/ReactDOM.js'
 import App from './App.jsx'
 import React from '/core/React.js'
 
-ReactDOM.createRoot(document.querySelector('#root')).render(App);
+ReactDOM.createRoot(document.querySelector('#root')).render(<App />);
