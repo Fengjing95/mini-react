@@ -3,7 +3,7 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-14 20:04:58
+ * @LastEditTime: 2024-01-15 20:04:20
  */
 /**
  * 创建文本内容
@@ -55,13 +55,30 @@ function render(el, container) {
 }
 
 let nextWorkOfUnit = null;
+let root = null;
 function workloop(deadline) {
   let shouldYield = false;
   while (!shouldYield && nextWorkOfUnit) {
     nextWorkOfUnit = performWorkOfUnit(nextWorkOfUnit);
     shouldYield = deadline.timeRemaining() < 1;
   }
+  if (!nextWorkOfUnit && root) {
+    commitRoot();
+  }
   requestIdleCallback(workloop);
+}
+
+function commitRoot(root) {
+  commitWork(root.child)
+  root = null;
+}
+
+function commitWork(fiber) {
+  if (!fiber) return;
+
+  fiber.parent.dom.append(fiber.dom);
+  commitWork(fiber.child);
+  commitRoot(fiber.sibling);
 }
 
 function createDOM(type) {
