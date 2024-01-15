@@ -3,7 +3,7 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-15 23:08:18
+ * @LastEditTime: 2024-01-15 23:37:37
  */
 /**
  * 创建文本内容
@@ -124,24 +124,34 @@ function initChildren(work, children) {
   })
 }
 
+// 处理函数组件
+function updateFunctionComponent(fiber) {
+  const children = [fiber.type(fiber.props)]
+  initChildren(fiber, children)
+}
+
+// 处理普通元素
+function updateHostComponent(fiber) {
+  if (!fiber.dom) {
+    // 创建DOM
+    const dom = (fiber.dom = createDOM(fiber.type));
+
+    // 处理props
+    updateProps(dom, fiber.props);
+  }
+  // 转换链表
+  const children = fiber.props.children;
+  initChildren(fiber, children)
+}
+
 function performWorkOfUnit(fiber) {
   // 判断是否为函数组件
   const isFunctionComponent = typeof fiber.type === 'function';
-  if (!isFunctionComponent) {
-    if (!fiber.dom) {
-      // 创建DOM
-      const dom = (fiber.dom = createDOM(fiber.type));
-
-      // fiber.parent.dom.append(dom)
-
-      // 处理props
-      updateProps(dom, fiber.props);
-    }
+  if (isFunctionComponent) {
+    updateFunctionComponent(fiber);
+  } else {
+    updateHostComponent(fiber);
   }
-
-  // 转换链表
-  const children = isFunctionComponent ? [fiber.type(fiber.props)] : fiber.props.children;
-  initChildren(fiber, children)
 
   // 返回下一个处理的节点
   if (fiber.child) {
@@ -154,7 +164,6 @@ function performWorkOfUnit(fiber) {
     }
     nextFiber = nextFiber.parent;
   }
-  // return fiber.parent?.sibling
 }
 
 const React = {
