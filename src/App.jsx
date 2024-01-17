@@ -3,19 +3,22 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-15 23:02:38
+ * @LastEditTime: 2024-01-17 20:34:00
  */
 import React from '/core/React.js'
 
 function Container() {
   return <div>
     <Count num={10}></Count>
-    <Count num={20}></Count>
+    {/* <Count num={20}></Count> */}
   </div>
 }
 
 function Count({ num }) {
-  return <div>count: {num}</div>
+  function handle() {
+    console.log('click')
+  }
+  return <div>count: {num} <button onClick={handle}>+</button></div>
 }
 
 const App = () => <div id="app">

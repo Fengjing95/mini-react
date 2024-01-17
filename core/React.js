@@ -3,7 +3,7 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-15 23:37:37
+ * @LastEditTime: 2024-01-17 20:29:40
  */
 /**
  * 创建文本内容
@@ -65,12 +65,12 @@ function workloop(deadline) {
     shouldYield = deadline.timeRemaining() < 1;
   }
   if (!nextWorkOfUnit && root) {
-    commitRoot(root);
+    commitRoot();
   }
   requestIdleCallback(workloop);
 }
 
-function commitRoot(root) {
+function commitRoot() {
   commitWork(root.child)
   root = null;
 }
@@ -99,7 +99,12 @@ function createDOM(type) {
 function updateProps(dom, props) {
   Object.keys(props).forEach(key => {
     if (key !== 'children') {
-      dom[key] = props[key];
+      if (key.startsWith('on')) {
+        const eventName = key.slice(2).toLowerCase();
+        dom.addEventListener(eventName, props[key]);
+      } else {
+        dom[key] = props[key];
+      }
     }
   });
 }
