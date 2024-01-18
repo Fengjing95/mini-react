@@ -3,7 +3,7 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-17 22:47:14
+ * @LastEditTime: 2024-01-18 22:36:36
  */
 import React from '/core/React.js'
 
@@ -16,19 +16,42 @@ function Container() {
 
 let count = 10
 function Count({ num }) {
+  const update = React.update()
   function handle() {
     console.log('click')
     count++
-    React.update()
+    update()
   }
   return <div>count: {count} <button onClick={handle}>+</button></div>
 }
+let hidden = true
+function Hide() {
+  const foo = <div>
+    foo
+    <div>child</div>
+    <div>child2</div>
+  </div>
+  const bar = <div>bar</div>
+
+  const update = React.update()
+  function handle() {
+    hidden = !hidden
+    update()
+  }
+
+  return <div>
+    {hidden && bar}
+    <button onClick={handle}>hide</button>
+    {/* <div>{hidden ? foo : bar}</div> */}
+  </div>
+}
 
 const App = () => <div id="app">
-  mini-react
+  {/* mini-react
   <br />
+  <Container></Container> */}
+  <Hide></Hide>
   <Count></Count>
-  <Container></Container>
 
 </div>;
 // const App = React.createElement('div', { id: 'app' }, 'mini')

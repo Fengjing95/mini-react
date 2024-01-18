@@ -3,7 +3,7 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-17 22:49:13
+ * @LastEditTime: 2024-01-18 22:41:05
  */
 /**
  * 创建文本内容
@@ -58,11 +58,14 @@ function render(el, container) {
 
 let wipRoot = null;
 let nextWorkOfUnit = null;
-let currentRoot = null;
+let deletions = [];
 function workLoop(deadline) {
   let shouldYield = false;
   while (!shouldYield && nextWorkOfUnit) {
     nextWorkOfUnit = performWorkOfUnit(nextWorkOfUnit);
+    if (wipRoot?.sibling?.type === nextWorkOfUnit?.type) {
+      nextWorkOfUnit = undefined
+    }
     shouldYield = deadline.timeRemaining() < 1;
   }
   if (!nextWorkOfUnit && wipRoot) {
@@ -72,9 +75,23 @@ function workLoop(deadline) {
 }
 
 function commitRoot() {
+  deletions.forEach(commitDeletion)
   commitWork(wipRoot.child)
-  currentRoot = wipRoot;
   wipRoot = null;
+  deletions = []
+}
+
+function commitDeletion(fiber) {
+  if (fiber.dom) {
+    let fiberParent = fiber.parent;
+    // 函数组件嵌套
+    while (!fiberParent.dom) {
+      fiberParent = fiberParent.parent;
+    }
+    fiberParent.dom.removeChild(fiber.dom);
+  } else {
+    commitDeletion(fiber.child);
+  }
 }
 
 function commitWork(fiber) {
@@ -132,7 +149,7 @@ function updateProps(dom, nextProps, prevProps) {
 function reconcileChildren(work, children) {
   let oldFiber = work.alternate?.child;
   let prevChild = null;
-  children.forEach((child, index) => {
+  children.filter(child => child).forEach((child, index) => {
     const isSameType = oldFiber && oldFiber.type === child.type;
     let fiber;
 
@@ -148,6 +165,7 @@ function reconcileChildren(work, children) {
         alternate: oldFiber
       }
     } else {
+      // if (fiber) {
       fiber = {
         type: child.type,
         props: child.props,
@@ -156,6 +174,11 @@ function reconcileChildren(work, children) {
         sibling: null,
         dom: null,
         effectTag: 'placement',
+      }
+      // }
+
+      if (oldFiber) {
+        deletions.push(oldFiber)
       }
     }
 
@@ -167,8 +190,16 @@ function reconcileChildren(work, children) {
     } else {
       prevChild.sibling = fiber;
     }
+
+    // if (fiber) {
     prevChild = fiber;
+    // }
   })
+
+  while (oldFiber) {
+    deletions.push(oldFiber)
+    oldFiber = oldFiber.sibling
+  }
 }
 
 // 处理函数组件
@@ -214,12 +245,15 @@ function performWorkOfUnit(fiber) {
 }
 
 function update() {
-  wipRoot = {
-    dom: currentRoot.dom,
-    props: currentRoot.props,
-    alternate: currentRoot,
+  let currentFiber = wipRoot
+  return () => {
+    wipRoot = {
+      ...currentFiber,
+      alternate: currentFiber,
+    }
+    nextWorkOfUnit = wipRoot
   }
-  nextWorkOfUnit = wipRoot
+
 }
 
 const React = {
