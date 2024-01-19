@@ -3,7 +3,7 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-18 22:41:05
+ * @LastEditTime: 2024-01-19 20:22:02
  */
 /**
  * 创建文本内容
@@ -57,6 +57,7 @@ function render(el, container) {
 }
 
 let wipRoot = null;
+let wipFiber = null;
 let nextWorkOfUnit = null;
 let deletions = [];
 function workLoop(deadline) {
@@ -204,6 +205,10 @@ function reconcileChildren(work, children) {
 
 // 处理函数组件
 function updateFunctionComponent(fiber) {
+  stateHooks = []
+  stateIndex = 0
+
+  wipFiber = fiber;
   const children = [fiber.type(fiber.props)]
   reconcileChildren(fiber, children)
 }
@@ -245,7 +250,7 @@ function performWorkOfUnit(fiber) {
 }
 
 function update() {
-  let currentFiber = wipRoot
+  let currentFiber = wipFiber
   return () => {
     wipRoot = {
       ...currentFiber,
@@ -256,10 +261,43 @@ function update() {
 
 }
 
+let stateHooks = [];
+let stateIndex = 0;
+export function useState(initial) {
+  let currentFiber = wipFiber;
+  let oldHook = currentFiber.alternate?.stateHooks[stateIndex++]
+  const stateHook = {
+    state: oldHook ? oldHook.state : initial,
+    queue: oldHook ? oldHook.queue : []
+  }
+
+  stateHook.queue.forEach(action => {
+    stateHook.state = action(stateHook.state)
+  })
+  stateHook.queue = []
+
+  stateHooks.push(stateHook)
+  currentFiber.stateHooks = stateHooks
+
+  function setState(action) {
+    const eagerState = typeof action === 'function' ? action(stateHook.state) : action
+    if (eagerState === stateHook.state) return
+    // stateHook.state = action(stateHook.state)
+    stateHook.queue.push(typeof action !== 'function' ? () => action : action)
+    wipRoot = {
+      ...currentFiber,
+      alternate: currentFiber
+    }
+    nextWorkOfUnit = wipRoot
+  }
+
+  return [stateHook.state, setState]
+}
+
 const React = {
   createElement,
   render,
-  update,
+  useState,
 }
 
 export default React
