@@ -3,7 +3,7 @@
  * @Author: 枫
  * @LastEditors: 枫
  * @description: description
- * @LastEditTime: 2024-01-19 20:22:02
+ * @LastEditTime: 2024-01-20 16:18:11
  */
 /**
  * 创建文本内容
@@ -77,9 +77,51 @@ function workLoop(deadline) {
 
 function commitRoot() {
   deletions.forEach(commitDeletion)
+  commitEffectHooks()
   commitWork(wipRoot.child)
   wipRoot = null;
   deletions = []
+}
+
+function commitEffectHooks() {
+  function run(fiber) {
+    if (!fiber) return;
+    if (!fiber.alternate) {
+      // init
+      fiber.effectHooks?.forEach(hook => {
+        hook.cleanup = hook.callback()
+      })
+    } else {
+      // update
+      fiber.effectHooks?.forEach((newHook, index) => {
+        if (newHook.deps.length > 0) {
+          const oldEffectHook = fiber.alternate?.effectHooks[index]
+          const needUpdate = oldEffectHook?.deps.some((oldDep, i) => {
+            return oldDep !== newHook.deps[i]
+          })
+          needUpdate && (newHook.cleanup = newHook.callback())
+        }
+      })
+    }
+    run(fiber.child)
+    run(fiber.sibling)
+  }
+
+  function runCleanup(fiber) {
+    if (!fiber) return
+
+    fiber.alternate?.effectHooks?.forEach(hook => {
+      if (hook.deps.length > 0) {
+        hook.cleanup?.()
+      }
+    })
+
+    runCleanup(fiber.child)
+    runCleanup(fiber.sibling)
+  }
+
+  runCleanup(wipRoot)
+  run(wipRoot)
 }
 
 function commitDeletion(fiber) {
@@ -207,6 +249,7 @@ function reconcileChildren(work, children) {
 function updateFunctionComponent(fiber) {
   stateHooks = []
   stateIndex = 0
+  effectHooks = []
 
   wipFiber = fiber;
   const children = [fiber.type(fiber.props)]
@@ -294,10 +337,21 @@ export function useState(initial) {
   return [stateHook.state, setState]
 }
 
+let effectHooks = [];
+export function useEffect(callback, deps) {
+  const effectHook = {
+    callback,
+    deps
+  }
+  effectHooks.push(effectHook)
+  wipFiber.effectHooks = effectHooks
+}
+
 const React = {
   createElement,
   render,
   useState,
+  useEffect,
 }
 
 export default React
